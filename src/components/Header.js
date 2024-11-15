@@ -1,33 +1,52 @@
-import icon from "../utils/icons8-user-50.png";
-import { useSignIn } from "../utils/signIn";
 import { signOut } from "firebase/auth";
 import { auth } from "../utils/firebase";
 import { useNavigate } from "react-router-dom";
-import { useSelector } from "react-redux";
-
+import { useDispatch, useSelector } from "react-redux";
+import { useEffect } from "react";
+import { onAuthStateChanged } from "firebase/auth";
+import { addUser, removeUser } from "../utils/userSlice";
+import { LOGO } from "../utils/constant";
 function Header() {
+  const dispatch = useDispatch();
   const navigate = useNavigate();
   const user = useSelector((store) => store.user);
+
   const handleSignout = () => {
     signOut(auth)
-      .then(() => {
-        navigate("/");
-      })
+      .then(() => {})
       .catch((error) => {
         // An error happened.
         navigate("/error");
       });
   };
-  const { signIn } = useSignIn();
-  console.log("Current SignIn State:", signIn);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        //if user signin or signup
+        const { uid, email, displayName, photoURL } = user;
+        dispatch(
+          addUser({
+            uid: uid,
+            email: email,
+            displayName: displayName,
+            photoURL: photoURL,
+          })
+        );
+        navigate("/browse");
+      } else {
+        // User is signed out
+        dispatch(removeUser());
+        navigate("/");
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
   return (
     <header className="fixed top-0 w-full bg-gradient-to-r from-black via-gray-900 to-black py-2 px-8 flex justify-between items-center z-50">
       {/* Logo */}
-      <img
-        className="w-32 h-auto"
-        src="https://cdn.cookielaw.org/logos/dd6b162f-1a32-456a-9cfe-897231c7763c/4345ea78-053c-46d2-b11e-09adaef973dc/Netflix_Logo_PMS.png"
-        alt="Netflix Logo"
-      />
+      <img className="w-32 h-auto" src={LOGO} alt="Netflix Logo" />
 
       {user && (
         <div className="flex items-center gap-4">
